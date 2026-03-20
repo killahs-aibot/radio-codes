@@ -453,6 +453,12 @@ def analyze(data: bytes, radio_model: str = "FULL SCAN", num_digits: int = 4) ->
     return results
 
 
+def get_supported_models() -> List[str]:
+    """Return sorted list of supported radio model names."""
+    models = sorted(RADIO_LOCATIONS.keys())
+    return models
+
+
 def identify_chip(data: bytes) -> str:
     """Identify the EEPROM chip from its size."""
     size = len(data)
