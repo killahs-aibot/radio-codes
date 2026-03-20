@@ -24,11 +24,13 @@ from radiocodes.algorithms import (
     VWRCDAlgorithm, VauxhallAlgorithm, PeugeotAlgorithm,
     FiatAlgorithm, NissanAlgorithm
 )
+from radiocodes.lookup_engine import get_stats
 from .styles import DARK_STYLESHEET
 from .code_display import CodeDisplay
 from .brand_selector import BrandSelector
 from .serial_input import SerialInput
 from .help_panel import HelpPanel
+from .eeprom_panel import EEPROMPanel
 
 
 class SettingsDialog(QDialog):
@@ -309,6 +311,33 @@ class MainWindow(QMainWindow):
         self._help_panel = HelpPanel()
         outer.addWidget(self._help_panel)
 
+        # ── 9. EEPROM Reader button ─────────────────────────────────────
+        self._eeprom_btn = QPushButton("💾 Read EEPROM Dump (Free Code Extraction)")
+        self._eeprom_btn.setMinimumHeight(44)
+        self._eeprom_btn.setStyleSheet("""
+            QPushButton {
+                background-color: #1F6FEB;
+                color: white;
+                border-radius: 8px;
+                font-size: 13px;
+                font-weight: bold;
+                padding: 10px 20px;
+            }
+            QPushButton:hover {
+                background-color: #388BFD;
+            }
+        """)
+        self._eeprom_btn.clicked.connect(self._open_eeprom_reader)
+        outer.addWidget(self._eeprom_btn)
+
+        # Database status
+        stats = get_stats()
+        self._db_status_label = QLabel(
+            f"🔍 {stats['total_pairs']} free codes in database across {len(stats['brands'])} brands"
+        )
+        self._db_status_label.setStyleSheet("color: #7D8590; font-size: 11px;")
+        outer.addWidget(self._db_status_label)
+
         outer.addStretch(0)
 
     def _connect_signals(self):
@@ -470,6 +499,25 @@ class MainWindow(QMainWindow):
             f"✓ Code calculated for {self._selected_brand_info.name}"
         )
         self._status_label.setStyleSheet("color: #3FB950; font-size: 13px;")
+
+    def _open_eeprom_reader(self) -> None:
+        """Open the EEPROM reader dialog."""
+        dialog = QDialog(self)
+        dialog.setWindowTitle("💾 EEPROM Code Reader — RadioUnlock")
+        dialog.setMinimumSize(560, 600)
+        layout = QVBoxLayout(dialog)
+        eeprom_panel = EEPROMPanel()
+        layout.addWidget(eeprom_panel)
+
+        def on_code_found(code: str, model: str) -> None:
+            self._code_display.set_code(code)
+            self._current_code = code
+            self._copy_btn.setEnabled(True)
+            self._status_label.setText(f"✅ Code from EEPROM ({model}): {code}")
+            self._status_label.setStyleSheet("color: #3FB950; font-size: 13px;")
+
+        eeprom_panel.code_found.connect(on_code_found)
+        dialog.exec()
 
     def _on_copy(self) -> None:
         """Copy the calculated code to clipboard."""
