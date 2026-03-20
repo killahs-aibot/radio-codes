@@ -1,5 +1,5 @@
 <!DOCTYPE html><html><head>
-  <base href="/radio-codes/">
+  <base href="/">
   <meta charset="UTF-8">
   <meta content="IE=Edge" http-equiv="X-UA-Compatible">
   <meta name="description" content="">
@@ -21,12 +21,12 @@
       pyodide: true,
       multiView: false,
       noCdn: "False".toLowerCase() == "true",
-      webSocketEndpoint: "ws",
-      entrypointBaseUrl: "",
-      assetBase: "",
+      webSocketEndpoint: "/ws",
+      entrypointBaseUrl: "/",
+      assetBase: "/",
       routeUrlStrategy: "hash",
-      canvasKitBaseUrl: "canvaskit/",
-      pyodideUrl: "pyodide/pyodide.js",
+      canvasKitBaseUrl: "/canvaskit/",
+      pyodideUrl: "/pyodide/pyodide.js",
       pythonModuleName: "main",
       webRenderer: "auto",
       fontFallbackBaseUrl: "assets/fonts/", // for Noto Emoji, use Google CDN
