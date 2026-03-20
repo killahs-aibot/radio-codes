@@ -1,24 +1,36 @@
 # -*- coding: utf-8 -*-
-"""Chrysler / Dodge / Jeep / Ram radio code algorithm."""
+"""⚠️  UNVERIFIED — Chrysler / Dodge / Jeep radio code algorithm.
+
+STATUS: UNVERIFIED — No publicly confirmed formula.
+        May produce WRONG codes. USE WITH CAUTION.
+
+Chrysler/Jeep use various head units including:
+- Uconnect 8.4" (需求 Navicaid)
+- MyGIG (Harman Kardon)
+- VP2 (RES C2C)
+
+For guaranteed correct codes: EEPROM reading recommended.
+"""
 from typing import Tuple, Optional
 from .base import BaseRadioAlgorithm
 
 class ChryslerAlgorithm(BaseRadioAlgorithm):
-    brand_name = "Chrysler / Dodge / Jeep"
-    supported_models = ["Uconnect 5", "Uconnect 8.4", "Reno", "VP2", "Harman Kardon"]
+    brand_name = "Chrysler / Dodge / Jeep ⚠️ UNVERIFIED"
+    supported_models = ["Uconnect", "MyGIG", "VP2", "RES C2C"]
     code_length = 4
-    serial_pattern = r"^[A-Z0-9]{4,6}$"
-    serial_format_hint = "4-6 characters on Uconnect label"
-    serial_location = "Serial on Uconnect head unit label or vehicle documents."
+    serial_pattern = r"^[A-Z0-9]{4,20}$"
+    serial_format_hint = "Serial on radio label or Uconnect screen"
+    serial_location = "Check radio label or vehicle documents"
+    verified = False  # 🔴 NOT VERIFIED
 
     def validate_serial(self, serial: str) -> Tuple[bool, Optional[str]]:
         serial = self.format_serial(serial)
-        if len(serial) < 4 or len(serial) > 6:
-            return False, "Serial must be 4-6 characters"
         return True, None
 
     def calculate(self, serial: str) -> str:
-        """Chrysler algorithm."""
+        """⚠️ UNVERIFIED — no confirmed formula exists."""
         serial = self.format_serial(serial)
-        total = sum(ord(c) * (i + 1) for i, c in enumerate(serial))
-        return f"{((total ^ 0x5A5A) + 3333) % 10000:04d}"
+        raise NotImplementedError(
+            "Chrysler/Dodge/Jeep: No verified algorithm found. "
+            "Use EEPROM Reader for guaranteed code extraction."
+        )
