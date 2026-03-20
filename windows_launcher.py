@@ -40,14 +40,19 @@ from radiocodes.algorithms import (
     FordMAlgorithm, FordVAlgorithm, RenaultAlgorithm,
     VWRCDAlgorithm, VauxhallAlgorithm, FiatAlgorithm,
     NissanAlgorithm, HondaAlgorithm, KiaAlgorithm,
-    PeugeotAlgorithm, AlfaAlgorithm, ChryslerAlgorithm,
 )
 from radiocodes.lookup_engine import load_csv, get_stats
 from radiocodes.eeprom_analyzer import analyze as eeprom_analyze, identify_chip, get_supported_models
 from radiocodes.serial_detector import detect_brand, get_format_hint
 
-# Load database
-load_csv()
+# Load database — use data/ from frozen bundle or source
+if getattr(sys, 'frozen', False):
+    _data_dir = os.path.join(sys._MEIPASS, 'data')
+else:
+    _data_dir = os.path.join(os.path.dirname(__file__), '..', 'data')
+_csv_path = os.path.join(_data_dir, 'forum_pairs.csv')
+
+load_csv(_csv_path)
 STATS = get_stats()
 DB_TOTAL = STATS["total_pairs"]
 DB_BRANDS = len(STATS["brands"])

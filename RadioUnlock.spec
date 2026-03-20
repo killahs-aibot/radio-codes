@@ -1,52 +1,19 @@
 # -*- mode: python ; coding: utf-8 -*-
-"""
-PyInstaller spec for RadioUnlock Windows Standalone.
-Run:  pyinstaller --clean RadioUnlock.spec
-"""
-
-import sys
-import os
-
-# src path — works whether repo is checked out flat or in a subfolder
-REPO_ROOT = os.environ.get('GITHUB_WORKSPACE', os.path.dirname(SPEC))
-SRC = os.path.join(REPO_ROOT, 'src')
-sys.path.insert(0, REPO_ROOT)
-
-block_cipher = None
+from PyInstaller.utils.hooks import collect_all
 
 datas = [
-    (os.path.join(REPO_ROOT, 'src', 'radiocodes'), 'radiocodes'),
+    ('src', 'src'),
+    ('data', 'data'),
 ]
 binaries = []
-hiddenimports = [
-    'tkinter',
-    'tkinter.ttk',
-    'tkinter.filedialog',
-    'tkinter.messagebox',
-    'radiocodes.algorithms',
-    'radiocodes.lookup_engine',
-    'radiocodes.eeprom_analyzer',
-    'radiocodes.serial_detector',
-    'radiocodes.bluepill.analyzer',
-    'radiocodes.algorithms.ford_m',
-    'radiocodes.algorithms.ford_v',
-    'radiocodes.algorithms.renault',
-    'radiocodes.algorithms.vw_rcd',
-    'radiocodes.algorithms.vauxhall',
-    'radiocodes.algorithms.fiat',
-    'radiocodes.algorithms.nissan',
-    'radiocodes.algorithms.honda',
-    'radiocodes.algorithms.kia',
-    'radiocodes.algorithms.peugeot',
-    'radiocodes.algorithms.alfa',
-    'radiocodes.algorithms.chrysler',
-    'radiocodes.algorithms.jaguar',
-    'radiocodes.algorithms.toyota',
-]
+hiddenimports = ['PySide6', 'PySide6.QtWidgets', 'radiocodes']
+tmp_ret = collect_all('radiocodes')
+datas += tmp_ret[0]; binaries += tmp_ret[1]; hiddenimports += tmp_ret[2]
+
 
 a = Analysis(
-    ['windows_launcher.py'],
-    pathex=[os.path.dirname(SPEC)],
+    ['src/radiocodes/main.py'],
+    pathex=[],
     binaries=binaries,
     datas=datas,
     hiddenimports=hiddenimports,
@@ -54,13 +21,10 @@ a = Analysis(
     hooksconfig={},
     runtime_hooks=[],
     excludes=[],
-    win_no_prefer_redirects=False,
-    win_private_assemblies=False,
-    cipher=block_cipher,
     noarchive=False,
+    optimize=0,
 )
-
-pyz = PYZ(a.pure, a.zipped_data, cipher=block_cipher)
+pyz = PYZ(a.pure)
 
 exe = EXE(
     pyz,
@@ -74,12 +38,14 @@ exe = EXE(
     upx=True,
     console=False,
     disable_windowed_traceback=False,
+    argv_emulation=False,
+    target_arch=None,
+    codesign_identity=None,
+    entitlements_file=None,
 )
-
 coll = COLLECT(
     exe,
     a.binaries,
-    a.zipfiles,
     a.datas,
     strip=False,
     upx=True,
