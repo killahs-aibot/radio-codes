@@ -9,3 +9,5 @@ venv/
 .venv/
 *.so
 *.whl
+dist/
+build/
