@@ -166,27 +166,26 @@ class RadioUnlockApp:
         # ── Header ────────────────────────────────────────────────────────
         header = tk.Frame(scrollable, bg=BG)
         header.pack(fill='x', pady=(16, 4))
-        tk.Label(header, text="📻  RadioUnlock", style='Title.TLabel').pack(anchor='w')
-        tk.Label(header, text=f"Free car radio codes · {DB_TOTAL} codes across {DB_BRANDS} brands",
-                 style='Muted.TLabel').pack(anchor='w')
+        ttk.Label(header, text="📻  RadioUnlock", style='Title.TLabel').pack(anchor='w')
+        ttk.Label(header, text=f"Free car radio codes · {DB_TOTAL} codes across {DB_BRANDS} brands", style='Muted.TLabel').pack(anchor='w')
 
         self._card(scrollable, pady=(8, 0), children=[
-            lambda p: tk.Label(p, text="SELECT BRAND", style='Section.TLabel').pack(anchor='w'),
+            lambda p: ttk.Label(p, text="SELECT BRAND", style='Section.TLabel').pack(anchor='w'),
             lambda p: self._brand_grid(p),
         ])
 
         self._card(scrollable, children=[
-            lambda p: tk.Label(p, text="ENTER SERIAL", style='Section.TLabel').pack(anchor='w'),
-            lambda p: tk.Label(p, text="", name='detect_hint', style='Muted.TLabel').pack(anchor='w'),
+            lambda p: ttk.Label(p, text="ENTER SERIAL", style='Section.TLabel').pack(anchor='w'),
+            lambda p: ttk.Label(p, text="", name='detect_hint', style='Muted.TLabel').pack(anchor='w'),
             lambda p: self._serial_field(p),
             lambda p: self._calc_btn(p),
         ])
 
         self.result_frame = self._card(scrollable, visible=False, children=[
-            lambda p: tk.Label(p, text="🔓  YOUR CODE", style='Section.TLabel').pack(anchor='w'),
+            lambda p: ttk.Label(p, text="🔓  YOUR CODE", style='Section.TLabel').pack(anchor='w'),
             lambda p: tk.Label(p, text="", name='result', font=('Consolas', 48, 'bold'),
                               fg=GREEN, bg=CARD).pack(anchor='center', pady=16),
-            lambda p: tk.Label(p, text="", name='status', style='Muted.TLabel').pack(anchor='center'),
+            lambda p: ttk.Label(p, text="", name='status', style='Muted.TLabel').pack(anchor='center'),
             lambda p: tk.Button(p, text="📋  Copy Code", command=self._copy_code,
                               bg=CARD, fg=TEXT, font=('Segoe UI', 11),
                               relief='flat', padx=16, pady=6,
@@ -194,9 +193,8 @@ class RadioUnlockApp:
         ])
 
         self.eeprom_frame = self._card(scrollable, visible=False, children=[
-            lambda p: tk.Label(p, text="💾  EEPROM ANALYZER", style='Section.TLabel').pack(anchor='w'),
-            lambda p: tk.Label(p, text="Load a .bin dump from your radio's 24Cxx chip",
-                              style='Muted.TLabel').pack(anchor='w'),
+            lambda p: ttk.Label(p, text="💾  EEPROM ANALYZER", style='Section.TLabel').pack(anchor='w'),
+            lambda p: ttk.Label(p, text="Load a .bin dump from your radio's 24Cxx chip", style='Muted.TLabel').pack(anchor='w'),
             lambda p: self._eeprom_ui(p),
         ])
 
