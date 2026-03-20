@@ -1,54 +1,46 @@
-name: Build Windows EXE
+name: Deploy to GitHub Pages
 
 on:
   push:
-    branches: [main]
-  pull_request:
-    branches: [main]
+    branches: [master]
   workflow_dispatch:
 
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+concurrency:
+  group: pages
+  cancel-in-progress: false
+
 jobs:
-  build:
-    runs-on: windows-latest
-    
+  deploy:
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    runs-on: ubuntu-latest
     steps:
       - name: Checkout
         uses: actions/checkout@v4
-
-      - name: Set up Python
-        uses: actions/setup-python@v5
+      - name: Setup Flutter
+        uses: subosito/flutter-action@v2
         with:
-          python-version: '3.12'
-
-      - name: Install dependencies
+          flutter-version: '3.41.4'
+          channel: 'stable'
+      - name: Install Flet
+        run: pip install flet
+      - name: Build Flet web app
         run: |
-          pip install PySide6 PyInstaller
-
-      - name: Build EXE
-        run: |
-          cp -r src src_win
-          echo "import sys; sys.path.insert(0, 'src_win')" | cat - src/radiocodes/main.py > src_win/radiocodes/main_tmp.py
-          mv src_win/radiocodes/main_tmp.py src_win/radiocodes/main.py
-          pyinstaller --name RadioUnlock --windowed --onefile ^
-            --add-data "src_win/radiocodes/algorithms/vw_rcd_lookup.py;radiocodes/algorithms" ^
-            --add-data "src_win/radiocodes/algorithms/renault_lookup.py;radiocodes/algorithms" ^
-            --add-data "data;data" ^
-            --hidden-import=PySide6 ^
-            --hidden-import=PySide6.QtCore ^
-            --hidden-import=PySide6.QtGui ^
-            --hidden-import=PySide6.QtWidgets ^
-            --collect-all=PySide6 ^
-            src_win/radiocodes/main.py
-
-      - name: Upload EXE
-        uses: actions/upload-artifact@v4
+          cd app
+          flet build web --release
+          mv build/flutter/web ../docs
+      - name: Setup Pages
+        uses: actions/configure-pages@v4
+      - name: Upload artifact
+        uses: actions/upload-pages-artifact@v3
         with:
-          name: RadioUnlock-Windows
-          path: dist/RadioUnlock.exe
-          compression-method: zip
-
-      - name: Upload data files
-        uses: actions/upload-artifact@v4
-        with:
-          name: RadioUnlock-Data
-          path: data/
+          path: 'docs'
+      - name: Deploy to GitHub Pages
+        id: deployment
+        uses: actions/deploy-pages@v4
