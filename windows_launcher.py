@@ -30,7 +30,7 @@ if getattr(sys, 'frozen', False):
     # Running as PyInstaller bundle
     bundle_dir = sys._MEIPASS
     src_path = os.path.join(bundle_dir, 'radiocodes')
-    sys.path.insert(0, bundle_dir)
+    sys.path.insert(0, os.path.join(bundle_dir, "src"))
 else:
     # Running from source
     src_path = os.path.join(os.path.dirname(__file__), '..', 'src')
