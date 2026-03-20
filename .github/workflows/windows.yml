@@ -32,7 +32,7 @@ jobs:
 
       - name: Build Windows executable
         run: |
-          pyinstaller --clean --onedir RadioUnlock.spec
+          pyinstaller --clean RadioUnlock.spec
 
       - name: Create zip archive
         shell: pwsh
