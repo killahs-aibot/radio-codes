@@ -27,7 +27,7 @@ sys.path.insert(0, os.path.join(os.path.dirname(__file__), "..", "src"))
 from radiocodes.algorithms import (
     FordMAlgorithm, FordVAlgorithm, RenaultAlgorithm,
     VWRCDAlgorithm, VauxhallAlgorithm, FiatAlgorithm,
-    NissanAlgorithm
+    NissanAlgorithm, HondaAlgorithm
 )
 from radiocodes.lookup_engine import load_csv, get_stats
 
@@ -39,23 +39,27 @@ DB_BRANDS = len(STATS["brands"])
 
 # Algorithm registry
 ALGORITHMS = {
-    "Ford M-Series": FordMAlgorithm(),
-    "Ford V-Series": FordVAlgorithm(),
-    "Renault / Dacia": RenaultAlgorithm(),
-    "VW / Audi / Seat / Skoda": VWRCDAlgorithm(),
-    "Vauxhall / Opel": VauxhallAlgorithm(),
-    "Fiat / Alfa Romeo": FiatAlgorithm(),
-    "Nissan": NissanAlgorithm(),
+    "Ford M-Series ✅": FordMAlgorithm(),
+    "Ford V-Series ✅": FordVAlgorithm(),
+    "Renault / Dacia ✅": RenaultAlgorithm(),
+    "VW / Audi / Seat / Skoda ⚠️": VWRCDAlgorithm(),
+    "Vauxhall / Opel ⚠️": VauxhallAlgorithm(),
+    "Fiat / Alfa Romeo ✅": FiatAlgorithm(),
+    "Nissan ⚠️ UNVERIFIED": NissanAlgorithm(),
+    "Honda 🏁 FREE PORTAL": HondaAlgorithm(),
+    "Acura 🏁 FREE PORTAL": HondaAlgorithm(),  # Same portal as Honda
 }
 
 BRAND_HELP = {
-    "Ford M-Series": "Enter serial starting with M (e.g. M025345)",
-    "Ford V-Series": "Enter serial starting with V (e.g. V528803)",
-    "Renault / Dacia": "Enter serial starting with D (e.g. D123)",
-    "VW / Audi / Seat / Skoda": "Enter full 17-char serial (e.g. VWZ5Z7B5013069)",
-    "Vauxhall / Opel": "Enter serial starting with GM (e.g. GM020328268659)",
-    "Fiat / Alfa Romeo": "Enter last 4 digits only (e.g. VP1-1234 → enter 1234)",
-    "Nissan": "Enter serial starting with BP or CY (e.g. BP538769684801)",
+    "Ford M-Series ✅": "Enter serial starting with M (e.g. M025345)",
+    "Ford V-Series ✅": "Enter serial starting with V (e.g. V528803)",
+    "Renault / Dacia ✅": "Enter pre-code: 1 letter + 3 digits (e.g. D123)",
+    "VW / Audi / Seat / Skoda ⚠️": "Enter full 14-char serial (e.g. VWZ5Z7B5013069)",
+    "Vauxhall / Opel ⚠️": "Enter serial starting with GM (e.g. GM020328268659)",
+    "Fiat / Alfa Romeo ✅": "Enter last 4 digits of serial (e.g. VP1-1234 → enter 1234)",
+    "Nissan ⚠️ UNVERIFIED": "⚠️ Formula unverified. Try serial or use FREE portal: radio-navicode.nissan.com",
+    "Honda 🏁 FREE PORTAL": "🌐 OFFICIAL FREE: radio-navicode.honda.com\nEnter VIN + radio serial, get code instantly — free!",
+    "Acura 🏁 FREE PORTAL": "🌐 OFFICIAL FREE: radio-navicode.acura.com\nSame as Honda — Enter VIN + radio serial, get code instantly",
 }
 
 # Colours
@@ -376,7 +380,7 @@ def main(page: Page):
                         ),
                         Container(height=16),
 
-                        # Algos
+                        # Algos — verified
                         Container(
                             padding=14,
                             border_radius=12,
@@ -386,13 +390,29 @@ def main(page: Page):
                                 Text("✅ Working algorithms (instant, no internet):",
                                      size=13, weight=ft.FontWeight.W_600, color=GREEN),
                                 Container(height=6),
-                                Text("Ford M-Series · Ford V-Series",
+                                Text("Ford M-Series · Ford V-Series · Renault / Dacia",
                                      size=12, color=TEXT, font_family="monospace"),
-                                Text("Renault / Dacia · Fiat VP1/VP2",
+                                Text("Fiat / Alfa Romeo VP1/VP2",
                                      size=12, color=TEXT, font_family="monospace"),
-                                Text("VW RCD · Vauxhall / Opel · Nissan",
-                                     size=12, color=TEXT, font_family="monospace"),
-                            ], spacing=4),
+                                Container(height=4),
+                                Text("⚠️ Database lookup (may not find your serial):",
+                                     size=11, weight=ft.FontWeight.W_600, color="FFA500"),
+                                Text("VW/Audi/Seat/Skoda · Vauxhall/Opel",
+                                     size=11, color=TEXT_MUTED, font_family="monospace"),
+                                Text("⚠️ Unverified formula (try official portal first):",
+                                     size=11, weight=ft.FontWeight.W_600, color="FFA500"),
+                                Text("Nissan",
+                                     size=11, color=TEXT_MUTED, font_family="monospace"),
+                                Container(height=4),
+                                Text("🌐 Free official portals (fast & guaranteed):",
+                                     size=11, weight=ft.FontWeight.W_600, color=ACCENT2),
+                                Text("Honda → radio-navicode.honda.com",
+                                     size=11, color=TEXT_MUTED),
+                                Text("Acura → radio-navicode.acura.com",
+                                     size=11, color=TEXT_MUTED),
+                                Text("Nissan → radio-navicode.nissan.com",
+                                     size=11, color=TEXT_MUTED),
+                           ], spacing=4),
                         ),
                         Container(height=8),
 
