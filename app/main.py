@@ -16,7 +16,7 @@ Build APK:
 import flet as ft
 from flet import (
     AppView, Column, Container, ElevatedButton, Text,
-    TextField, Row, Icon, Dropdown, Option,
+    TextField, Row, Icon, Dropdown, DropdownOption,
     NavigationBar, NavigationDestination, View, Page
 )
 import sys
@@ -92,7 +92,7 @@ def main(page: Page):
         ref=selected_brand,
         label="Select Car Brand",
         hint_text="Choose your radio brand...",
-        options=[Option(k) for k in ALGORITHMS.keys()],
+        options=[DropdownOption(k) for k in ALGORITHMS.keys()],
         bgcolor=SURFACE,
         border_color=BORDER,
         focused_border_color=ACCENT2,
