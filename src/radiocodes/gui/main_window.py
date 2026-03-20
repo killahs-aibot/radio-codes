@@ -359,6 +359,15 @@ class MainWindow(QMainWindow):
         # Update model dropdown
         self._model_combo.blockSignals(True)
         self._model_combo.clear()
+
+        # For Ford, show all supported serial formats as model options
+        if brand_key == "ford" and self._selected_brand_info.algorithm:
+            for model in self._selected_brand_info.algorithm.supported_models:
+                self._model_combo.addItem(model)
+        # For other brands, leave empty or use a default label
+        elif self._selected_brand_info.algorithm:
+            self._model_combo.addItem(self._selected_brand_info.name)
+
         self._model_combo.blockSignals(False)
 
         # Update serial format hint

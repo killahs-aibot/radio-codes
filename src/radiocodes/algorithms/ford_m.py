@@ -142,10 +142,24 @@ def _ford_v_calculate(serial: str, bin_path: str = DEFAULT_RADIO_CODES_BIN) -> s
 class FordMAlgorithm(BaseRadioAlgorithm):
     """Ford M Series radio code algorithm (confirmed working)."""
     brand_name = "Ford"
-    supported_models = ["M Series", "M Serial"]
+    supported_models = [
+        "M Series", "M Serial",
+        "Ford Figo", "Ford EcoSport", "Ford SONY CD", "Ford Blaupunkt",
+        "Ford Sanyo", "Ford TravelPilot",
+    ]
     code_length = 4
     serial_pattern = r"^M\d{6}$"
-    serial_format_hint = "7 characters: M + 6 digits (e.g. M123456)"
+    serial_format_hint = (
+        "7 characters: M + 6 digits (e.g. M123456)\n"
+        "Other Ford formats:\n"
+        "  V-Series: V + 6 digits (e.g. V123456)\n"
+        "  Figo: VCOOAB + 8 digits (e.g. VCOOAB12345678)\n"
+        "  EcoSport: ABC + 6 digits (e.g. ABC123456)\n"
+        "  SONY CD: SOCD + 7 chars (e.g. SOCD123V456789)\n"
+        "  Blaupunkt: BP + alphanumeric (e.g. BP8203X1234567)\n"
+        "  Sanyo: 12 digits (e.g. 123456789012)\n"
+        "  TravelPilot: 8-char hex (e.g. A1B2C3D4)"
+    )
     serial_location = (
         "1. Hold preset buttons 1 AND 6 together\n"
         "2. While holding, turn the radio on\n"
@@ -154,23 +168,61 @@ class FordMAlgorithm(BaseRadioAlgorithm):
     )
 
     def validate_serial(self, serial: str) -> Tuple[bool, Optional[str]]:
-        serial = self.format_serial(serial)
-        if len(serial) != 7:
-            return False, "Serial must be 7 characters: M + 6 digits (e.g. M123456)"
-        if not serial.startswith('M'):
-            return False, "M Series serial must start with 'M'"
-        if not serial[1:].isdigit():
-            return False, "Last 6 characters must all be digits"
-        return True, None
+        serial = self.format_serial(serial).upper()
+
+        # M-Series: M + 6 digits
+        if len(serial) == 7 and serial.startswith('M') and serial[1:].isdigit():
+            return True, None
+
+        # V-Series: V + 6 digits
+        if len(serial) == 7 and serial.startswith('V') and serial[1:].isdigit():
+            return True, None
+
+        # Ford Figo: VCOOAB + 8 digits
+        if len(serial) == 15 and serial.startswith('VCOOAB') and serial[6:].isdigit():
+            return True, None
+
+        # Ford EcoSport: ABC + 6 digits
+        if len(serial) == 9 and serial.startswith('ABC') and serial[3:].isdigit():
+            return True, None
+
+        # Ford SONY CD: SOCD + 7 chars
+        if len(serial) == 11 and serial.startswith('SOCD') and len(serial) == 11:
+            return True, None
+
+        # Ford Blaupunkt: BP + alphanumeric
+        if serial.startswith('BP') and len(serial) >= 8:
+            return True, None
+
+        # Ford Sanyo: 12 digits
+        if len(serial) == 12 and serial.isdigit():
+            return True, None
+
+        # Ford TravelPilot: 8-char hex
+        if len(serial) == 8 and all(c in '0123456789ABCDEF' for c in serial):
+            return True, None
+
+        return False, (
+            "Unrecognized Ford serial format. "
+            "Expected: M/V + 6 digits, VCOOAB + 8 digits, ABC + 6 digits, "
+            "SOCD + 7 chars, BP + alphanumeric, 12 digits, or 8-char hex."
+        )
 
     def calculate(self, serial: str) -> str:
+        serial = self.format_serial(serial).upper()
+        if serial.startswith('V') and len(serial) == 7:
+            return _ford_v_calculate(serial, DEFAULT_RADIO_CODES_BIN)
         return _ford_m_calculate(serial)
 
 
 class FordVAlgorithm(BaseRadioAlgorithm):
     """Ford V Series radio code algorithm (binary lookup file required)."""
     brand_name = "Ford"
-    supported_models = ["V Series", "V Serial", "TravelPilot EX", "TravelPilot FX", "TravelPilot NX"]
+    supported_models = [
+        "V Series", "V Serial", "TravelPilot EX", "TravelPilot FX",
+        "TravelPilot NX", "Ford Figo", "Ford EcoSport", "Ford SONY CD",
+        "Ford Blaupunkt", "Ford Sanyo", "Ford TravelPilot",
+    ]
     code_length = 4
     serial_pattern = r"^V\d{6}$"
     serial_format_hint = "7 characters: V + 6 digits (e.g. V123456)"
