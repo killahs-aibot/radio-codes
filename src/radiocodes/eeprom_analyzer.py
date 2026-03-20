@@ -1,268 +1,465 @@
 # -*- coding: utf-8 -*-
 """
-RadioUnlock EEPROM Analyzer.
-Loads a radio EEPROM binary dump and extracts the unlock code.
+RadioUnlock EEPROM Dump Analyzer v2.
+Loads a radio EEPROM binary dump and extracts unlock codes.
 
-Supported radios and their known code locations:
-- 24C01/24C02/24C04 (most common 8-pin SOIC chips)
-- Code is typically stored as plain 4-digit BCD at a known address per manufacturer
+Supported chips: 24C01 · 24C02 · 24C04 · 24C08 · 24C16 · 24C64
+Supported radios: Blaupunkt, Ford, Opel/Vauxhall, Renault, VW, Nissan, Honda, etc.
 
-This tool searches common code locations and highlights potential codes.
+Usage:
+  python3 -m radiocodes.eeprom_analyzer dump.bin [model]
+
+  # Scan entire dump for 4-digit BCD codes
+  python3 -m radiocodes.eeprom_analyzer dump.bin --scan
+
+  # Scan with a specific radio model
+  python3 -m radiocodes.eeprom_analyzer dump.bin "Blaupunkt CAR2003"
 """
 
-import re
+import sys
 import os
 from dataclasses import dataclass
-from typing import List, Optional
+from typing import List, Optional, Tuple
 
+# ── Chip definitions ────────────────────────────────────────────────────────
 
-@dataclass
-class CodeMatch:
-    address: int
-    code: str
-    chip_name: str
-    confidence: str  # "high" / "medium" / "low"
+CHIP_SIZES = {
+    "24C01": 128,
+    "24C02": 256,
+    "24C04": 512,
+    "24C08": 1024,
+    "24C16": 2048,
+    "24C64": 8192,
+}
 
-
-# Known code storage addresses by radio model
-# address = byte offset in the EEPROM dump
-# format = how the code is stored (BCD=plain digits, inverted=reversed digits)
-
-CODE_LOCATIONS = {
-    # Blaupunkt / GM cars (Opel/Vauxhall)
+# Known code storage locations by radio model.
+# addr = byte offset in EEPROM. -1 means scan entire chip.
+# fmt = "bcd" (digits 0-9 stored as 0x00-0x09) or "ascii"
+RADIO_LOCATIONS = {
+    # ── Blaupunkt / Opel ──────────────────────────────────────────────
     "Blaupunkt CAR2003": {
         "chip": "24C02",
+        "code_len": 4,
+        "fmt": "bcd",
         "locations": [
-            {"addr": 0x00, "format": "bcd", "confidence": "high", "notes": "Primary code location"},
-            {"addr": 0x10, "format": "bcd", "confidence": "medium", "notes": "Backup location"},
-            {"addr": 0x20, "format": "bcd", "confidence": "medium", "notes": ""},
-            {"addr": 0x30, "format": "bcd", "confidence": "low", "notes": ""},
+            {"addr": 0x00, "confidence": "high"},
+            {"addr": 0x08, "confidence": "high"},
+            {"addr": 0x10, "confidence": "medium"},
+            {"addr": 0x18, "confidence": "medium"},
+            {"addr": 0x20, "confidence": "low"},
+            {"addr": 0x30, "confidence": "low"},
         ],
     },
     "Blaupunkt CAR2004": {
         "chip": "24C02",
+        "code_len": 4,
+        "fmt": "bcd",
         "locations": [
-            {"addr": 0x00, "format": "bcd", "confidence": "high", "notes": "Primary code location"},
-            {"addr": 0x08, "format": "bcd", "confidence": "high", "notes": ""},
-            {"addr": 0x10, "format": "bcd", "confidence": "medium", "notes": ""},
+            {"addr": 0x00, "confidence": "high"},
+            {"addr": 0x08, "confidence": "high"},
+            {"addr": 0x10, "confidence": "medium"},
+            {"addr": 0x18, "confidence": "medium"},
         ],
     },
     "Blaupunkt CAR300": {
         "chip": "24C04",
+        "code_len": 4,
+        "fmt": "bcd",
         "locations": [
-            {"addr": 0x00, "format": "bcd", "confidence": "high", "notes": "Primary code location"},
-            {"addr": 0x10, "format": "bcd", "confidence": "medium", "notes": ""},
-            {"addr": 0x20, "format": "bcd", "confidence": "low", "notes": ""},
+            {"addr": 0x00, "confidence": "high"},
+            {"addr": 0x08, "confidence": "high"},
+            {"addr": 0x10, "confidence": "medium"},
+            {"addr": 0x18, "confidence": "medium"},
+            {"addr": 0x80, "confidence": "low"},
         ],
     },
     "Blaupunkt CD300": {
         "chip": "24C04",
+        "code_len": 4,
+        "fmt": "bcd",
         "locations": [
-            {"addr": 0x00, "format": "bcd", "confidence": "high", "notes": "Primary code location"},
-            {"addr": 0x18, "format": "bcd", "confidence": "high", "notes": ""},
-            {"addr": 0x30, "format": "bcd", "confidence": "medium", "notes": ""},
+            {"addr": 0x00, "confidence": "high"},
+            {"addr": 0x08, "confidence": "high"},
+            {"addr": 0x10, "confidence": "medium"},
+            {"addr": 0x18, "confidence": "medium"},
+            {"addr": 0x80, "confidence": "low"},
         ],
     },
-    # Siemens VDO (Opel/Vauxhall)
-    "Siemens VDO CR500": {
+    "Blaupunkt PC2003": {
         "chip": "24C02",
+        "code_len": 4,
+        "fmt": "bcd",
         "locations": [
-            {"addr": 0x00, "format": "bcd", "confidence": "high", "notes": ""},
-            {"addr": 0x08, "format": "bcd", "confidence": "medium", "notes": ""},
+            {"addr": 0x00, "confidence": "high"},
+            {"addr": 0x10, "confidence": "high"},
+            {"addr": 0x20, "confidence": "medium"},
         ],
     },
-    # Ford radios
+    "Blaupunkt PC5004": {
+        "chip": "24C02",
+        "code_len": 4,
+        "fmt": "bcd",
+        "locations": [
+            {"addr": 0x00, "confidence": "high"},
+            {"addr": 0x08, "confidence": "high"},
+            {"addr": 0x10, "confidence": "medium"},
+        ],
+    },
+    # ── Opel / Vauxhall ───────────────────────────────────────────────
+    "Opel / Vauxhall CDX": {
+        "chip": "24C02",
+        "code_len": 4,
+        "fmt": "bcd",
+        "locations": [
+            {"addr": 0x00, "confidence": "high"},
+            {"addr": 0x08, "confidence": "high"},
+            {"addr": 0x10, "confidence": "medium"},
+        ],
+    },
+    "Opel / Vauxhall CDC": {
+        "chip": "24C02",
+        "code_len": 4,
+        "fmt": "bcd",
+        "locations": [
+            {"addr": 0x00, "confidence": "high"},
+            {"addr": 0x10, "confidence": "high"},
+            {"addr": 0x20, "confidence": "medium"},
+        ],
+    },
+    "Opel / Vauxhall Navi": {
+        "chip": "24C04",
+        "code_len": 4,
+        "fmt": "bcd",
+        "locations": [
+            {"addr": 0x00, "confidence": "high"},
+            {"addr": 0x08, "confidence": "high"},
+            {"addr": 0x80, "confidence": "medium"},
+        ],
+    },
+    # ── Ford ─────────────────────────────────────────────────────────
     "Ford 6000CD": {
         "chip": "24C02",
+        "code_len": 4,
+        "fmt": "bcd",
         "locations": [
-            {"addr": 0x00, "format": "bcd", "confidence": "high", "notes": ""},
-            {"addr": 0x04, "format": "bcd", "confidence": "high", "notes": ""},
-            {"addr": 0x08, "format": "bcd", "confidence": "medium", "notes": ""},
-            {"addr": 0x10, "format": "bcd", "confidence": "medium", "notes": ""},
+            {"addr": 0x00, "confidence": "high"},
+            {"addr": 0x04, "confidence": "high"},
+            {"addr": 0x08, "confidence": "medium"},
+            {"addr": 0x10, "confidence": "medium"},
+            {"addr": 0x20, "confidence": "low"},
         ],
     },
     "Ford M-Series": {
         "chip": "24C02",
+        "code_len": 4,
+        "fmt": "bcd",
         "locations": [
-            {"addr": 0x00, "format": "bcd", "confidence": "high", "notes": ""},
-            {"addr": 0x10, "format": "bcd", "confidence": "high", "notes": ""},
+            {"addr": 0x00, "confidence": "high"},
+            {"addr": 0x10, "confidence": "high"},
+            {"addr": 0x20, "confidence": "medium"},
         ],
     },
-    # Bosch Touch & Connect
-    "Bosch Touch & Connect": {
-        "chip": "24C64",
-        "locations": [
-            {"addr": 0x00, "format": "bcd", "confidence": "high", "notes": ""},
-            {"addr": 0x10, "format": "bcd", "confidence": "medium", "notes": ""},
-            {"addr": 0x80, "format": "bcd", "confidence": "medium", "notes": ""},
-            {"addr": 0x100, "format": "bcd", "confidence": "low", "notes": ""},
-        ],
-    },
-    # Renault
-    "Renault": {
+    "Ford TravelPilot": {
         "chip": "24C02",
+        "code_len": 4,
+        "fmt": "bcd",
         "locations": [
-            {"addr": 0x00, "format": "bcd", "confidence": "high", "notes": ""},
-            {"addr": 0x04, "format": "bcd", "confidence": "high", "notes": ""},
-            {"addr": 0x08, "format": "bcd", "confidence": "medium", "notes": ""},
-            {"addr": 0x10, "format": "bcd", "confidence": "medium", "notes": ""},
+            {"addr": 0x00, "confidence": "high"},
+            {"addr": 0x08, "confidence": "high"},
+            {"addr": 0x10, "confidence": "medium"},
         ],
     },
-    # VW / Audi
-    "VW RCD": {
+    # ── Renault ──────────────────────────────────────────────────────
+    "Renault / Dacia": {
         "chip": "24C02",
+        "code_len": 4,
+        "fmt": "bcd",
         "locations": [
-            {"addr": 0x00, "format": "bcd", "confidence": "high", "notes": ""},
-            {"addr": 0x10, "format": "bcd", "confidence": "high", "notes": ""},
-            {"addr": 0x20, "format": "bcd", "confidence": "medium", "notes": ""},
+            {"addr": 0x00, "confidence": "high"},
+            {"addr": 0x04, "confidence": "high"},
+            {"addr": 0x08, "confidence": "medium"},
+            {"addr": 0x10, "confidence": "medium"},
         ],
     },
-    # Nissan
+    # ── VW / Audi ────────────────────────────────────────────────────
+    "VW RCD 300": {
+        "chip": "24C02",
+        "code_len": 4,
+        "fmt": "bcd",
+        "locations": [
+            {"addr": 0x00, "confidence": "high"},
+            {"addr": 0x10, "confidence": "high"},
+            {"addr": 0x20, "confidence": "medium"},
+            {"addr": 0x30, "confidence": "low"},
+        ],
+    },
+    "VW RCD 310": {
+        "chip": "24C02",
+        "code_len": 4,
+        "fmt": "bcd",
+        "locations": [
+            {"addr": 0x00, "confidence": "high"},
+            {"addr": 0x08, "confidence": "high"},
+            {"addr": 0x10, "confidence": "medium"},
+        ],
+    },
+    "VW RCD 510": {
+        "chip": "24C04",
+        "code_len": 4,
+        "fmt": "bcd",
+        "locations": [
+            {"addr": 0x00, "confidence": "high"},
+            {"addr": 0x08, "confidence": "high"},
+            {"addr": 0x10, "confidence": "medium"},
+            {"addr": 0x80, "confidence": "low"},
+        ],
+    },
+    "Audi Chorus / Concert / Symphony": {
+        "chip": "24C02",
+        "code_len": 4,
+        "fmt": "bcd",
+        "locations": [
+            {"addr": 0x00, "confidence": "high"},
+            {"addr": 0x10, "confidence": "high"},
+            {"addr": 0x20, "confidence": "medium"},
+        ],
+    },
+    # ── Fiat / Alfa ─────────────────────────────────────────────────
+    "Fiat Uconnect": {
+        "chip": "24C02",
+        "code_len": 4,
+        "fmt": "bcd",
+        "locations": [
+            {"addr": 0x00, "confidence": "high"},
+            {"addr": 0x10, "confidence": "high"},
+        ],
+    },
+    "Alfa Romeo Connect": {
+        "chip": "24C02",
+        "code_len": 4,
+        "fmt": "bcd",
+        "locations": [
+            {"addr": 0x00, "confidence": "high"},
+            {"addr": 0x08, "confidence": "medium"},
+        ],
+    },
+    # ── Nissan ───────────────────────────────────────────────────────
     "Nissan Connect": {
         "chip": "24C64",
+        "code_len": 4,
+        "fmt": "bcd",
         "locations": [
-            {"addr": 0x00, "format": "bcd", "confidence": "high", "notes": ""},
-            {"addr": 0x08, "format": "bcd", "confidence": "high", "notes": ""},
-            {"addr": 0x10, "format": "bcd", "confidence": "medium", "notes": ""},
-            {"addr": 0x100, "format": "bcd", "confidence": "low", "notes": ""},
+            {"addr": 0x00, "confidence": "high"},
+            {"addr": 0x08, "confidence": "high"},
+            {"addr": 0x10, "confidence": "medium"},
+            {"addr": 0x80, "confidence": "low"},
+            {"addr": 0x100, "confidence": "low"},
         ],
     },
-    # Generic 4-digit BCD search (all addresses)
-    "Generic (4-digit BCD)": {
-        "chip": "ANY",
+    "Nissan Patrol / Qashqai": {
+        "chip": "24C64",
+        "code_len": 4,
+        "fmt": "bcd",
         "locations": [
-            # Scan every byte — look for 4 consecutive BCD digits
-            {"addr": -1, "format": "scan_bcd", "confidence": "low", "notes": "Scans entire chip for 4-digit BCD sequences"},
+            {"addr": 0x00, "confidence": "high"},
+            {"addr": 0x10, "confidence": "high"},
+            {"addr": 0x100, "confidence": "medium"},
+        ],
+    },
+    # ── Honda ────────────────────────────────────────────────────────
+    "Honda / Acura": {
+        "chip": "24C02",
+        "code_len": 5,
+        "fmt": "bcd",
+        "locations": [
+            {"addr": 0x00, "confidence": "high"},
+            {"addr": 0x04, "confidence": "high"},
+            {"addr": 0x08, "confidence": "medium"},
+            {"addr": 0x10, "confidence": "medium"},
+        ],
+    },
+    # ── Bosch ───────────────────────────────────────────────────────
+    "Bosch Touch & Connect": {
+        "chip": "24C64",
+        "code_len": 4,
+        "fmt": "bcd",
+        "locations": [
+            {"addr": 0x00, "confidence": "high"},
+            {"addr": 0x08, "confidence": "high"},
+            {"addr": 0x10, "confidence": "medium"},
+            {"addr": 0x80, "confidence": "medium"},
+            {"addr": 0x100, "confidence": "low"},
+        ],
+    },
+    # ── Siemens VDO ─────────────────────────────────────────────────
+    "Siemens VDO CR500": {
+        "chip": "24C02",
+        "code_len": 4,
+        "fmt": "bcd",
+        "locations": [
+            {"addr": 0x00, "confidence": "high"},
+            {"addr": 0x08, "confidence": "high"},
+            {"addr": 0x10, "confidence": "medium"},
+        ],
+    },
+    # ── Scan all ────────────────────────────────────────────────────
+    "FULL SCAN": {
+        "chip": "ANY",
+        "code_len": 4,
+        "fmt": "scan_bcd",
+        "locations": [
+            {"addr": -1, "confidence": "low"},
+        ],
+    },
+    "FULL SCAN 5-digit": {
+        "chip": "ANY",
+        "code_len": 5,
+        "fmt": "scan_bcd",
+        "locations": [
+            {"addr": -1, "confidence": "low"},
         ],
     },
 }
 
 
-def _is_bcd_digit(b: int) -> bool:
-    """Check if a byte is a valid BCD digit (0-9 encoded as 0x00-0x09)."""
-    return b <= 0x09
+# ── Core analysis ───────────────────────────────────────────────────────────
+
+@dataclass
+class CodeMatch:
+    """A potential radio code found in an EEPROM dump."""
+    address: int
+    code: str
+    confidence: str  # "high" / "medium" / "low"
+    radio: str
+    notes: str = ""
 
 
-def _read_bcd_4(data: bytes, addr: int) -> Optional[str]:
-    """Read 4 BCD digits from a specific address. Returns None if not valid BCD."""
-    if addr < 0 or addr + 4 > len(data):
+def _is_bcd(b: int) -> bool:
+    """Return True if byte is a valid BCD digit (0x00-0x09)."""
+    return 0 <= b <= 9
+
+
+def _read_bcd(data: bytes, addr: int, num_digits: int = 4) -> Optional[str]:
+    """Read N BCD digits from addr. Returns None if any byte is invalid BCD."""
+    if addr < 0 or addr + num_digits > len(data):
         return None
-    chunk = data[addr:addr+4]
-    # Check all 4 bytes are valid BCD digits
-    if not all(_is_bcd_digit(b) for b in chunk):
+    chunk = data[addr:addr + num_digits]
+    if not all(_is_bcd(b) for b in chunk):
         return None
     return "".join(f"{b:02d}"[-1] for b in chunk)
 
 
-def _find_bcd_runs(data: bytes) -> List[CodeMatch]:
-    """Scan entire chip for runs of 4+ consecutive BCD digits."""
+def _read_bcd_reversed(data: bytes, addr: int, num_digits: int = 4) -> Optional[str]:
+    """Read N BCD digits in reverse order (some radios store LSB-first)."""
+    normal = _read_bcd(data, addr, num_digits)
+    if normal is None:
+        return None
+    return normal[::-1]
+
+
+def _scan_full(data: bytes, num_digits: int = 4) -> List[CodeMatch]:
+    """
+    Scan the entire EEPROM dump for runs of consecutive BCD digits.
+    Returns a list of potential codes.
+    """
     matches = []
-    consecutive = []
-    for i, b in enumerate(data):
-        if _is_bcd_digit(b):
-            consecutive.append((i, b))
-        else:
-            if len(consecutive) >= 4:
-                # Extract the 4-digit sequence
-                addr = consecutive[0][0]
-                digits = [c[1] for c in consecutive[:4]]
-                code = "".join(f"{d:02d}"[-1] for d in digits)
-                # Validate it's not just noise (check surrounding area)
-                if _looks_like_real_code(data, addr):
+    i = 0
+    while i <= len(data) - num_digits:
+        # Try forward read
+        code = _read_bcd(data, i, num_digits)
+        if code:
+            # Check surrounding context
+            context = _assess_context(data, i, num_digits)
+            if context >= 2:  # At least 2 surrounding BCD-ish bytes
+                # Avoid duplicates
+                dup = any(m.address == i for m in matches)
+                if not dup:
+                    confidence = "high" if context >= 4 else ("medium" if context >= 3 else "low")
                     matches.append(CodeMatch(
-                        address=addr,
+                        address=i,
                         code=code,
-                        chip_name="EEPROM Dump",
-                        confidence="low"
+                        confidence=confidence,
+                        radio="Unknown",
+                        notes=f"context={context}"
                     ))
-            consecutive = []
+            i += num_digits  # Skip past this sequence
+        else:
+            i += 1
     return matches
 
 
-def _looks_like_real_code(data: bytes, addr: int, window: int = 16) -> bool:
+def _assess_context(data: bytes, addr: int, num_digits: int, window: int = 6) -> int:
     """
-    Check if a 4-digit sequence at addr looks like a real radio code.
-    Rejects sequences that are adjacent to non-printable/non-BCD data in a suspicious way.
+    Count how many surrounding bytes look like part of a code structure.
+    Higher = more likely to be a real code. Max score = 6.
     """
-    if addr < 2 or addr + 4 + 2 > len(data):
-        return False
-    
-    # Get surrounding bytes
-    before = data[addr-2:addr]
-    after = data[addr+4:addr+6]
-    
-    # At least one surrounding byte should also be BCD or very close
-    surrounding_bcd = sum(1 for b in before + after if _is_bcd_digit(b) or b <= 0x20)
-    
-    return surrounding_bcd >= 2
+    score = 0
+    start = max(0, addr - window)
+    end = min(len(data), addr + num_digits + window)
+    for j in range(start, end):
+        if j < addr or j >= addr + num_digits:
+            b = data[j]
+            if _is_bcd(b):
+                score += 1
+            elif b == 0xFF or b == 0x00:
+                score += 0.5
+    return min(score, 6)
 
 
-def analyze_dump(data: bytes, radio_model: str = "Generic (4-digit BCD)") -> List[CodeMatch]:
+def analyze(data: bytes, radio_model: str = "FULL SCAN", num_digits: int = 4) -> List[CodeMatch]:
     """
-    Analyze an EEPROM dump and extract potential radio codes.
-    
+    Analyze an EEPROM dump and find potential unlock codes.
+
     Args:
-        data: Raw binary EEPROM dump
-        radio_model: Known radio model, or "Generic (4-digit BCD)" to scan everything
-    
+        data: Raw binary dump from the EEPROM chip
+        radio_model: Specific radio model, or "FULL SCAN" / "FULL SCAN 5-digit"
+        num_digits: Number of BCD digits for the code (4 or 5)
+
     Returns:
-        List of CodeMatch objects, sorted by confidence (high first)
+        List of CodeMatch sorted by confidence (high first)
     """
-    results = []
+    if radio_model not in RADIO_LOCATIONS:
+        radio_model = "FULL SCAN"
 
-    if radio_model not in CODE_LOCATIONS:
-        radio_model = "Generic (4-digit BCD)"
+    cfg = RADIO_LOCATIONS[radio_model]
+    results: List[CodeMatch] = []
 
-    config = CODE_LOCATIONS[radio_model]
+    if cfg["fmt"] == "scan_bcd":
+        return _scan_full(data, num_digits)
 
-    # If generic scan, do full chip scan
-    if config["locations"][0].get("addr") == -1:
-        return _find_bcd_runs(data)
-
-    # Check known locations for each radio model
-    for loc in config["locations"]:
+    # Check known locations
+    for loc in cfg["locations"]:
         addr = loc["addr"]
-        fmt = loc["format"]
+        # Try normal byte order
+        code = _read_bcd(data, addr, cfg["code_len"])
+        # Try reversed byte order (some radios store LSB-first)
+        code_rev = _read_bcd_reversed(data, addr, cfg["code_len"])
 
-        if fmt == "bcd":
-            code = _read_bcd_4(data, addr)
-            if code:
-                results.append(CodeMatch(
-                    address=addr,
-                    code=code,
-                    chip_name=radio_model,
-                    confidence=loc["confidence"]
-                ))
+        for c, note in [(code, ""), (code_rev, " (reversed)")]:
+            if c:
+                # Check this isn't a duplicate
+                if not any(m.address == addr and m.code == c for m in results):
+                    results.append(CodeMatch(
+                        address=addr,
+                        code=c,
+                        confidence=loc["confidence"],
+                        radio=radio_model,
+                        notes=note.strip()
+                    ))
 
-    # Sort by confidence then address
+    # Sort: high confidence first, then by address
     order = {"high": 0, "medium": 1, "low": 2}
-    results.sort(key=lambda x: (order[x.confidence], x.address))
-
+    results.sort(key=lambda m: (order[m.confidence], m.address))
     return results
 
 
-def get_supported_models() -> List[str]:
-    """Return list of supported radio models."""
-    return list(CODE_LOCATIONS.keys())
-
-
 def identify_chip(data: bytes) -> str:
-    """Try to identify the chip size from the dump."""
+    """Identify the EEPROM chip from its size."""
     size = len(data)
-    if size <= 128:
-        return f"24C01 ({size} bytes)"
-    elif size <= 256:
-        return f"24C02 ({size} bytes)"
-    elif size <= 512:
-        return f"24C04 ({size} bytes)"
-    elif size <= 1024:
-        return f"24C08 ({size} bytes)"
-    elif size <= 2048:
-        return f"24C16 ({size} bytes)"
-    elif size <= 8192:
-        return f"24C64 ({size} bytes)"
-    else:
-        return f"Unknown ({size} bytes)"
+    for chip, sz in CHIP_SIZES.items():
+        if size == sz:
+            return f"{chip} ({sz} bytes)"
+    return f"Unknown ({size} bytes)"
 
 
 def load_dump(path: str) -> bytes:
@@ -271,43 +468,126 @@ def load_dump(path: str) -> bytes:
         return f.read()
 
 
-if __name__ == "__main__":
-    import sys
+# ── Hexdump ────────────────────────────────────────────────────────────────
+
+def hexdump(data: bytes, offset: int = 0, length: int = 256) -> str:
+    """
+    Generate a readable hexdump of a region of the dump.
+    Shows offset, hex bytes, and ASCII representation.
+    """
+    end = min(offset + length, len(data))
+    lines = []
+    for i in range(offset, end, 16):
+        chunk = data[i:i+16]
+        hex_part = " ".join(f"{b:02X}" for b in chunk)
+        ascii_part = "".join(chr(b) if 32 <= b < 127 else "." for b in chunk)
+        lines.append(f"{i:04X}  {hex_part:<48}  {ascii_part}")
+    return "\n".join(lines)
+
+
+# ── CLI ─────────────────────────────────────────────────────────────────────
+
+def main():
     if len(sys.argv) < 2:
-        print("Usage: python eeprom_analyzer.py <dump_file.bin> [radio_model]")
-        print(f"\nSupported radio models:")
-        for model in get_supported_models():
-            print(f"  - {model}")
-        print("\nExample: python eeprom_analyzer.py dump.bin 'Blaupunkt CAR2003'")
-        sys.exit(1)
+        print("📻 EEPROM Analyzer — RadioUnlock")
+        print()
+        print("Usage:")
+        print("  python3 -m radiocodes.eeprom_analyzer <dump.bin> [model]")
+        print("  python3 -m radiocodes.eeprom_analyzer <dump.bin> --scan")
+        print()
+        print("Supported models:")
+        print("  FULL SCAN       — Scan entire chip (all radios, all addresses)")
+        print("  FULL SCAN 5-digit — For Honda 5-digit codes")
+        print()
+        for model in sorted(RADIO_LOCATIONS.keys()):
+            if not model.startswith("FULL"):
+                print(f"  {model}")
+        return
 
     path = sys.argv[1]
-    model = sys.argv[2] if len(sys.argv) > 2 else "Generic (4-digit BCD)"
 
     if not os.path.exists(path):
-        print(f"File not found: {path}")
-        sys.exit(1)
+        print(f"❌ File not found: {path}")
+        return
 
     data = load_dump(path)
     chip = identify_chip(data)
-    print(f"\n📻 EEPROM Analyzer — RadioUnlock")
-    print(f"Chip identified: {chip}")
-    print(f"Radio model: {model}")
-    print(f"File size: {len(data)} bytes")
-    print()
 
-    matches = analyze_dump(data, model)
+    # Determine model
+    if len(sys.argv) > 2:
+        model_arg = sys.argv[2]
+        if model_arg == "--scan":
+            model = "FULL SCAN"
+        elif model_arg == "--scan5":
+            model = "FULL SCAN 5-digit"
+        else:
+            model = model_arg
+            if model not in RADIO_LOCATIONS:
+                print(f"⚠️  Unknown model '{model}', using FULL SCAN instead.")
+                model = "FULL SCAN"
+    else:
+        model = "FULL SCAN"
+
+    num_digits = 5 if "5-digit" in model else 4
+
+    print("=" * 60)
+    print("📻 EEPROM Analyzer — RadioUnlock")
+    print("=" * 60)
+    print(f"File:       {os.path.basename(path)}")
+    print(f"Size:       {len(data):,} bytes ({chip})")
+    print(f"Model:      {model}")
+    print(f"Code digits: {num_digits}")
+    print("=" * 60)
+
+    matches = analyze(data, model, num_digits)
 
     if matches:
-        print(f"✅ Found {len(matches)} potential code(s):\n")
-        for m in matches:
-            conf_emoji = {"high": "🟢", "medium": "🟡", "low": "⚪️"}.get(m.confidence, "⚪️")
-            print(f"  {conf_emoji} Address 0x{m.address:04X} → Code: {m.code}")
-            print(f"     Confidence: {m.confidence} | Radio: {m.chip_name}")
+        # Group by confidence
+        high = [m for m in matches if m.confidence == "high"]
+        med = [m for m in matches if m.confidence == "medium"]
+        low = [m for m in matches if m.confidence == "low"]
+
+        print(f"\n✅ Found {len(matches)} potential code(s):\n")
+
+        if high:
+            print(f"🟢 HIGH CONFIDENCE ({len(high)}):")
+            for m in high:
+                print(f"   0x{m.address:04X} → {m.code}  {m.notes}")
+            print()
+
+        if med:
+            print(f"🟡 MEDIUM CONFIDENCE ({len(med)}):")
+            for m in med:
+                print(f"   0x{m.address:04X} → {m.code}  {m.notes}")
+            print()
+
+        if low and model == "FULL SCAN":
+            print(f"⚪ LOW CONFIDENCE ({len(low)}) — try a specific radio model:")
+            shown = low[:10]
+            for m in shown:
+                print(f"   0x{m.address:04X} → {m.code}")
+            if len(low) > 10:
+                print(f"   ... and {len(low) - 10} more (use specific model to filter)")
+            print()
+
+        # Show hexdump around each high-confidence match
+        print("-" * 60)
+        print("Hexdump around HIGH confidence addresses:\n")
+        for m in high[:3]:
+            print(f"Address 0x{m.address:04X} (code: {m.code}):")
+            start = max(0, m.address - 16)
+            print(hexdump(data, start, 64))
             print()
     else:
-        print("❌ No codes found.")
-        print("\nTry 'Generic (4-digit BCD)' scan to search the entire dump.")
-        print("Also check:\n  - Is this the correct EEPROM chip?")
-        print("  - Is the dump corrupted or partial?")
-        print("  - Try another radio model profile.")
+        print("\n❌ No codes found.")
+        print()
+        print("Tips:")
+        print("  • Make sure you dumped the correct chip (24C0x SOIC 8-pin)")
+        print("  • Some radios need a FULL SCAN: --scan")
+        print("  • If the chip is 24C64 (Nissan, Bosch), use specific model")
+        print("  • Try another radio model from the supported list")
+        print("  • The dump may be from a different chip — check the radio board")
+
+
+if __name__ == "__main__":
+    main()
