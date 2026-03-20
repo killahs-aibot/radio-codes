@@ -18,7 +18,7 @@ class BrandInfo:
     serial_hint: str  # Where to find serial
     serial_format: str  # Human-readable format description
     code_length: int  # Number of digits in output code
-    status: str  # "working" or "coming_soon"
+    status: str  # "working" | "unverified" | "portal_only" | "coming_soon"
 
 
 # Import all algorithm modules
@@ -77,13 +77,13 @@ BRAND_REGISTRY: Dict[str, BrandInfo] = {
         status="working",
     ),
     "peugeot": BrandInfo(
-        name="Peugeot / Citroën",
+        name="Peugeot / Citroën ⚠️ UNVERIFIED",
         algorithm=PeugeotAlgorithm(),
         icon="🇫🇷",
         serial_hint="Serial on label, RT3/RT4: enter SETUP or SETTINGS to find serial",
         serial_format="4-6 character serial",
         code_length=4,
-        status="working",
+        status="unverified",
     ),
     "fiat": BrandInfo(
         name="Fiat / Alfa",
@@ -95,22 +95,22 @@ BRAND_REGISTRY: Dict[str, BrandInfo] = {
         status="working",
     ),
     "nissan": BrandInfo(
-        name="Nissan",
+        name="Nissan ⚠️ UNVERIFIED",
         algorithm=NissanAlgorithm(),
         icon="🇯🇵",
-        serial_hint="12-character serial, serial 5 on the radio label",
-        serial_format="12 characters",
+        serial_hint="12-character serial, serial 5 on the radio label.\nOR use official portal: https://radio-navicode.nissan.com/",
+        serial_format="12 hex characters",
         code_length=4,
-        status="working",
+        status="unverified",
     ),
     "honda": BrandInfo(
-        name="Honda",
+        name="Honda ✅ FREE PORTAL",
         algorithm=HondaAlgorithm(),
         icon="🏁",
-        serial_hint="Serial on label on the radio casing",
+        serial_hint="🌐 OFFICIAL FREE: https://radio-navicode.honda.com/\nEnter VIN + radio serial, get code instantly — free!",
         serial_format="5-10 character serial",
         code_length=5,
-        status="coming_soon",
+        status="portal_only",
     ),
     "toyota": BrandInfo(
         name="Toyota / Lexus",
@@ -122,31 +122,31 @@ BRAND_REGISTRY: Dict[str, BrandInfo] = {
         status="coming_soon",
     ),
     "alfa": BrandInfo(
-        name="Alfa Romeo",
+        name="Alfa Romeo ⚠️ EEPROM Recommended",
         algorithm=AlfaAlgorithm(),
         icon="🐍",
-        serial_hint="Serial on radio label or check vehicle documents",
-        serial_format="4-6 character serial",
+        serial_hint="Try Fiat VP1/VP2 for Blaupunkt units. Otherwise use EEPROM Reader.",
+        serial_format="Serial on radio label",
         code_length=4,
-        status="coming_soon",
+        status="unverified",
     ),
     "chrysler": BrandInfo(
-        name="Chrysler / Dodge / Jeep",
+        name="Chrysler / Dodge / Jeep ⚠️ EEPROM Recommended",
         algorithm=ChryslerAlgorithm(),
         icon="🇺🇸",
-        serial_hint="Serial on Uconnect label or check vehicle documents",
-        serial_format="4-6 character serial",
+        serial_hint="No free algorithm exists. Use EEPROM Reader (CH341A + full chip scan).",
+        serial_format="Serial on Uconnect label",
         code_length=4,
-        status="coming_soon",
+        status="unverified",
     ),
     "jaguar": BrandInfo(
-        name="Jaguar / Land Rover",
+        name="Jaguar / Land Rover ⚠️ EEPROM Recommended",
         algorithm=JaguarAlgorithm(),
         icon="🦁",
-        serial_hint="InControl serial found on radio or in vehicle settings",
-        serial_format="5-8 character serial",
+        serial_hint="Code often on glovebox security card. Otherwise use EEPROM Reader.",
+        serial_format="InControl serial on radio",
         code_length=4,
-        status="coming_soon",
+        status="unverified",
     ),
 }
 
