@@ -1,0 +1,46 @@
+{
+  "seen_serials": [
+    "SEZ",
+    "SKZ",
+    "AUZ",
+    "VWZ"
+  ],
+  "pairs": [
+    {
+      "serial": "VWZ",
+      "code": "340480",
+      "brand": "vw",
+      "model": "",
+      "source_page": 1,
+      "source_post": 9,
+      "author": "unknown"
+    },
+    {
+      "serial": "AUZ",
+      "code": "129460",
+      "brand": "audi",
+      "model": "",
+      "source_page": 1,
+      "source_post": 9,
+      "author": "unknown"
+    },
+    {
+      "serial": "SKZ",
+      "code": "1400",
+      "brand": "skoda",
+      "model": "",
+      "source_page": 1,
+      "source_post": 9,
+      "author": "unknown"
+    },
+    {
+      "serial": "SEZ",
+      "code": "355",
+      "brand": "seat",
+      "model": "",
+      "source_page": 1,
+      "source_post": 9,
+      "author": "unknown"
+    }
+  ]
+}
