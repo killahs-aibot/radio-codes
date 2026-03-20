@@ -6,13 +6,13 @@ datas = [
     ('data', 'data'),
 ]
 binaries = []
-hiddenimports = ['PySide6', 'PySide6.QtWidgets', 'radiocodes']
+hiddenimports = ['radiocodes', 'radiocodes.algorithms', 'radiocodes.lookup_engine', 'radiocodes.eeprom_analyzer', 'radiocodes.serial_detector', 'tkinter', 'tkinter.ttk']
 tmp_ret = collect_all('radiocodes')
 datas += tmp_ret[0]; binaries += tmp_ret[1]; hiddenimports += tmp_ret[2]
 
 
 a = Analysis(
-    ['src/radiocodes/main.py'],
+    ['windows_launcher.py'],
     pathex=[],
     binaries=binaries,
     datas=datas,
