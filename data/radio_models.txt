@@ -1,0 +1,136 @@
+# Car Radio Model Names Found During Research
+# Format: model_name,brand,description
+
+# Ford
+6000CD,ford,Sony 6000CD CDC MP3 changer - common Ford radio
+Sony,ford,Sony headunits in Ford vehicles
+RCD310,vw,Ford Focus Mk2 / VW Group 2DIN radio
+RCD510,vw,Ford/VW 2DIN touch screen radio
+MP5,ford,Generic Android-style MP5 player
+
+# VW/Audi Group
+RCD310,vw,VW 2DIN radio with CD
+RCD510,vw,VW 2DIN touch screen radio with SD card
+RNS310,vw,VW navigation radio
+RNS510,vw,VW high-end navigation with hard disk
+MMI,audi,Audi Multi Media Interface system
+Concert,audi,Audi Concert radio
+AUZ1Z2Hxxxxxx,audi,Audi serial number format (14-char)
+AUZ1Z3Hxxxxxx,audi,Audi serial number variant
+AUZBZ7Lxxxxxx,audi,Audi serial with BZ prefix
+
+# Opel/Vauxhall
+CD30,opel/vauxhall,Opel CD30 MP3 / CD30 MP3 changer
+22DC670/xx,opel/vauxhall,Opel/Younique 22DC
+GM020xxxx,opel/vauxhall,Opel serial format (GM + 12 digits)
+
+# Blaupunkt (used across many brands)
+Blaupunkt CAR2003,multi,Portable navigation with radio
+Blaupunkt CDC,multi,Blaupunkt CD changer headunit
+BPxxxxxxxx,multi,Blaupunkt serial format (BP + model + number)
+BP2774Pxxxxxxx,multi,Blaupunkt serial with P variant
+BP3301Yxxxxxxx,multi,Blaupunkt year-specific serial
+7 647 301 316,multi,Blaupunkt service code / model number
+815BP730181xxxxx,multi,Peugeot/Blaupunkt format
+
+# Peugeot/Citroen
+RT3,peugeot/citroen,Peugeot/Citroen RT3 colour screen nav
+RT4,peugeot/citroen,Peugeot/Citroen RT4 hard disk nav
+RNEG,peugeot/citroen,Peugeot RNEG media nav
+
+# Nissan
+Connect,nissan,Nissan Connect navigation
+NissanConnect,nissan,Nissan full name for Connect system
+CY16C-xxxxxxx,nissan,Nissan serial format
+B5E3-xxxxx,nissan,Nissan older serial format
+
+# BMW
+Business CD,bmw,BMW Business CD headunit
+V500xxxx,bmw,BMW serial format
+BPO2733xxxxx,bmw,BMW old model serial
+
+# Mercedes
+Comand,mercedes,Mercedes COMAND APS system
+Audio 20,mercedes,Mercedes Audio 20 standard radio
+A140/168/170,mercedes,Mercedes class prefix codes
+W168/W169,mercedes,Mercedes A-class chassis serial prefix
+
+# Renault
+precode,renault,Renault 4-character alpha-numeric security code
+A100-D999,renault,Renault precode letter+3 digits format
+
+# Kia/Hyundai
+P/H/B/D/E/G/K/C prefixes,kia/hyundai,Kia/Hyundai serial number first letter
+BLTxxxxxx,hyundai,Hyundai serial format
+
+# Smart
+V00x,smart,Smart Fortwo radio serial format
+V123,smart,Smart serial number variant
+
+# Land Rover / Range Rover
+M-series,landrover,Land Rover M-prefix serial
+C838,landrover,Land Rover 4-digit class code
+R660/R670/R760,mini/rover,Mini/Rover R-prefix serial
+S0007364,landrover,Land Rover navigation serial
+
+# Mini (BMW Mini)
+R50/R53,Mini,Mini One / Cooper R50=2000-2006, R53=2002-2008
+R57/R58,Mini,Mini Clubman / Coupe
+R57/R58,Mini,Mini Cabrio / Roadster
+R60/61,Mini,Mini Countryman / Paceman
+
+# Suzuki
+M010203,multi,Generic serial for Suzuki/Mazda/Toyota
+
+# Chery
+M033886,chery,Chery serial number
+
+# Alfa Romeo
+BP3392xxxxxxxxx,alfa,Alfa Romeo Blaupunkt serial
+BP7233xxxxxxxxx,alfa,Alfa Romeo Blaupunkt variant
+
+# Lancia
+A4363357,lancia,Lancia serial number
+BE074270096,lancia,Lancia older serial format
+
+# Fiat
+M03xxxx, fiat,Fiat serial format
+M065xxx,fiat,Fiat serial format
+M117xxx,fiat,Fiat serial format
+
+# Jeep/Chrysler/Dodge
+BE149xxxxxx,jeep/chrysler,Jeep/Chrysler BE serial
+P05091610AB,jeep,Jeep part number style serial
+QN623xxxxxx,dodge,Dodge serial number
+
+# Volvo
+E076,volvo,Volvo serial number format
+V0387031165096,volvo,Volvo full serial format
+
+# Saab
+saab,saab,Saab-specific radios (Trionic etc.)
+
+# MG/Rover
+MG TF,mg,MG TF roadster radio
+MG ZR/ZR,mg,MG ZR/ZS/TF model series
+
+# Daewoo
+281156951RTB582,daewoo,Daewoo part-number serial
+
+# Dacia
+281153889R,dacia,Dacia serial/part number
+281157265R,dacia,Dacia variant serial
+
+# Subaru
+VWZ1Z3Kxxxxxxx,subaru,Subaru (uses VW-group headunits)
+VWZ4Z7Dxxxxxxx,subaru,Subaru serial variant
+
+# Mitsubishi
+B151,mitsubishi,Mitsubishi serial prefix
+BL058xxxxx,mitsubishi,Mitsubishi newer serial
+
+# Cadillac
+R652,cadillac,R-prefix Cadillac serial
+
+# Pontiac
+BP2775Rxxxxxxx,pontiac,Pontiac Blaupunkt serial
