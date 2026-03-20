@@ -15,6 +15,7 @@ from .toyota import ToyotaAlgorithm
 from .alfa import AlfaAlgorithm
 from .chrysler import ChryslerAlgorithm
 from .jaguar import JaguarAlgorithm
+from .kia import KiaAlgorithm
 
 __all__ = [
     "BaseRadioAlgorithm",
@@ -32,4 +33,5 @@ __all__ = [
     "AlfaAlgorithm",
     "ChryslerAlgorithm",
     "JaguarAlgorithm",
+    "KiaAlgorithm",
 ]

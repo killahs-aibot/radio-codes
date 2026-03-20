@@ -3,7 +3,8 @@
     "SEZ",
     "SKZ",
     "AUZ",
-    "VWZ"
+    "VWZ",
+    "89FJJWB182595085"
   ],
   "pairs": [
     {
@@ -41,6 +42,15 @@
       "source_page": 1,
       "source_post": 9,
       "author": "unknown"
+    },
+    {
+      "serial": "89FJJWB182595085",
+      "code": "6752",
+      "brand": "volvo",
+      "model": "Delphi Electronics truck radio",
+      "source_page": 1,
+      "source_post": 1,
+      "author": "digital-kaos"
     }
   ]
 }
