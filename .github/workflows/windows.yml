@@ -51,7 +51,7 @@ jobs:
         uses: softprops/action-gh-release@v1
         with:
           files: RadioUnlock-Windows.zip
-          tag: latest
+          tag_name: latest
           name: RadioUnlock Windows (Latest)
           draft: false
           prerelease: false
