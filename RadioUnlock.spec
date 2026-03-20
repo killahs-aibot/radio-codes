@@ -7,14 +7,15 @@ Run:  pyinstaller --clean RadioUnlock.spec
 import sys
 import os
 
-# src path (two levels up from this spec file)
-SRC = os.path.join(os.path.dirname(SPEC), '..', 'src')
-sys.path.insert(0, os.path.join(os.path.dirname(SPEC), '..'))
+# src path — works whether repo is checked out flat or in a subfolder
+REPO_ROOT = os.environ.get('GITHUB_WORKSPACE', os.path.dirname(SPEC))
+SRC = os.path.join(REPO_ROOT, 'src')
+sys.path.insert(0, REPO_ROOT)
 
 block_cipher = None
 
 datas = [
-    (os.path.join(SRC, 'radiocodes'), 'radiocodes'),
+    (os.path.join(REPO_ROOT, 'src', 'radiocodes'), 'radiocodes'),
 ]
 binaries = []
 hiddenimports = [
