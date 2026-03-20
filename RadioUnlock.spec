@@ -1,16 +1,51 @@
 # -*- mode: python ; coding: utf-8 -*-
-from PyInstaller.utils.hooks import collect_all
+"""
+PyInstaller spec for RadioUnlock Windows Standalone.
+Run:  pyinstaller --clean RadioUnlock.spec
+"""
 
-datas = [('src/radiocodes/algorithms/vw_rcd_lookup.py', 'radiocodes/algorithms'), ('src/radiocodes/algorithms/renault_lookup.py', 'radiocodes/algorithms'), ('data', 'data')]
+import sys
+import os
+
+# src path (two levels up from this spec file)
+SRC = os.path.join(os.path.dirname(SPEC), '..', 'src')
+sys.path.insert(0, os.path.join(os.path.dirname(SPEC), '..'))
+
+block_cipher = None
+
+datas = [
+    (os.path.join(SRC, 'radiocodes'), 'radiocodes'),
+]
 binaries = []
-hiddenimports = ['PySide6', 'PySide6.QtCore', 'PySide6.QtGui', 'PySide6.QtWidgets']
-tmp_ret = collect_all('PySide6')
-datas += tmp_ret[0]; binaries += tmp_ret[1]; hiddenimports += tmp_ret[2]
-
+hiddenimports = [
+    'tkinter',
+    'tkinter.ttk',
+    'tkinter.filedialog',
+    'tkinter.messagebox',
+    'radiocodes.algorithms',
+    'radiocodes.lookup_engine',
+    'radiocodes.eeprom_analyzer',
+    'radiocodes.serial_detector',
+    'radiocodes.bluepill.analyzer',
+    'radiocodes.algorithms.ford_m',
+    'radiocodes.algorithms.ford_v',
+    'radiocodes.algorithms.renault',
+    'radiocodes.algorithms.vw_rcd',
+    'radiocodes.algorithms.vauxhall',
+    'radiocodes.algorithms.fiat',
+    'radiocodes.algorithms.nissan',
+    'radiocodes.algorithms.honda',
+    'radiocodes.algorithms.kia',
+    'radiocodes.algorithms.peugeot',
+    'radiocodes.algorithms.alfa',
+    'radiocodes.algorithms.chrysler',
+    'radiocodes.algorithms.jaguar',
+    'radiocodes.algorithms.toyota',
+]
 
 a = Analysis(
-    ['src/radiocodes/main.py'],
-    pathex=[],
+    ['windows_launcher.py'],
+    pathex=[os.path.dirname(SPEC)],
     binaries=binaries,
     datas=datas,
     hiddenimports=hiddenimports,
@@ -18,28 +53,35 @@ a = Analysis(
     hooksconfig={},
     runtime_hooks=[],
     excludes=[],
+    win_no_prefer_redirects=False,
+    win_private_assemblies=False,
+    cipher=block_cipher,
     noarchive=False,
-    optimize=0,
 )
-pyz = PYZ(a.pure)
+
+pyz = PYZ(a.pure, a.zipped_data, cipher=block_cipher)
 
 exe = EXE(
     pyz,
     a.scripts,
-    a.binaries,
-    a.datas,
     [],
+    exclude_binaries=True,
     name='RadioUnlock',
     debug=False,
     bootloader_ignore_signals=False,
     strip=False,
     upx=True,
-    upx_exclude=[],
-    runtime_tmpdir=None,
     console=False,
     disable_windowed_traceback=False,
-    argv_emulation=False,
-    target_arch=None,
-    codesign_identity=None,
-    entitlements_file=None,
+)
+
+coll = COLLECT(
+    exe,
+    a.binaries,
+    a.zipfiles,
+    a.datas,
+    strip=False,
+    upx=True,
+    upx_exclude=[],
+    name='RadioUnlock',
 )

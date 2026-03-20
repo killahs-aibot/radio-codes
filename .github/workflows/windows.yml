@@ -1,0 +1,59 @@
+name: Build Windows Executable
+
+on:
+  push:
+    branches: [master]
+    paths:
+      - 'src/**'
+      - 'app/**'
+      - 'data/**'
+      - 'windows_launcher.py'
+      - 'RadioUnlock.spec'
+      - '.github/workflows/windows.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  build:
+    runs-on: windows-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+
+      - name: Install dependencies
+        run: pip install pyinstaller
+
+      - name: Build Windows executable
+        run: |
+          pyinstaller --clean --onedir RadioUnlock.spec
+
+      - name: Create zip archive
+        shell: pwsh
+        run: |
+          Compress-Archive -Path "dist/RadioUnlock/*" -DestinationPath "RadioUnlock-Windows.zip" -Force
+
+      - name: Upload artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: RadioUnlock-Windows
+          path: RadioUnlock-Windows.zip
+          retention-days: 30
+
+      - name: Upload latest to GitHub Release
+        if: github.ref == 'refs/heads/master'
+        uses: softprops/action-gh-release@v1
+        with:
+          files: RadioUnlock-Windows.zip
+          tag: latest
+          name: RadioUnlock Windows (Latest)
+          draft: false
+          prerelease: false
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
